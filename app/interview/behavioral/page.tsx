@@ -29,7 +29,7 @@ export default function BehavioralInterviewPage() {
       }
 
       // Check if we already have resumeText stored
-      let resumeText = data.rounds?.behavioral?.resumeText;
+      let resumeText = data?.rounds?.behavioral?.resumeText;
       
       // If not, parse the resume
       if (!resumeText) {
@@ -126,7 +126,7 @@ export default function BehavioralInterviewPage() {
               ...data?.rounds,
               behavioral: {
                 messages: newMessages,
-                resumeText: data.rounds?.behavioral?.resumeText || "Resume text unavailable",
+                resumeText: data?.rounds?.behavioral?.resumeText || "Resume text unavailable",
               },
             },
           });
@@ -233,8 +233,8 @@ export default function BehavioralInterviewPage() {
     setSessionData(data);
 
     if (data?.rounds?.behavioral?.messages) {
-      setMessages(data.rounds.behavioral.messages);
-      setIsComplete(data.rounds.behavioral.completed || false);
+      setMessages(data?.rounds?.behavioral?.messages);
+      setIsComplete(data?.rounds?.behavioral?.completed || false);
     } else {
       startInterview();
     }
@@ -271,7 +271,7 @@ export default function BehavioralInterviewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          resumeText: data.rounds?.behavioral?.resumeText || "",
+          resumeText: data?.rounds?.behavioral?.resumeText || "",
           conversationHistory,
         }),
       });

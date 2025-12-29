@@ -19,36 +19,6 @@ export default function TechnicalInterviewPage() {
   const [startTime] = useState(Date.now());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const data = getSessionData();
-    if (!data) {
-      router.push("/setup");
-      return;
-    }
-    setSessionData(data);
-
-    // Check if interview already started
-    if (data?.rounds?.technical?.messages) {
-      setMessages(data.rounds.technical.messages);
-      setIsComplete(data.rounds.technical.completed || false);
-    } else {
-      // Start interview
-      startInterview();
-    }
-  }, [router, startInterview]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    // Check 3-minute limit
-    const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed >= 180 && !isComplete) {
-      handleComplete();
-    }
-  }, [startTime, isComplete, handleComplete]);
-
   const startInterview = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -59,7 +29,7 @@ export default function TechnicalInterviewPage() {
       }
 
       // Check if we already have resumeText stored
-      let resumeText = data.rounds?.technical?.resumeText;
+      let resumeText = data?.rounds?.technical?.resumeText;
       
       // If not, parse the resume
       if (!resumeText) {
@@ -157,7 +127,7 @@ export default function TechnicalInterviewPage() {
               ...data?.rounds,
               technical: {
                 messages: newMessages,
-                resumeText: data.rounds?.technical?.resumeText || "Resume text unavailable",
+                resumeText: data?.rounds?.technical?.resumeText || "Resume text unavailable",
               },
             },
           });
@@ -169,91 +139,6 @@ export default function TechnicalInterviewPage() {
       setIsLoading(false);
     }
   }, [router]);
-
-  const handleSend = async () => {
-    if (!input.trim() || isLoading || isComplete) return;
-
-    const userMessage: Message = { role: "user", content: input.trim() };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      const data = getSessionData();
-      if (!data) {
-        router.push("/setup");
-        return;
-      }
-      const conversationHistory = newMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const response = await fetch("/api/technical-interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeText: data.rounds?.technical?.resumeText || "",
-          jobDescription: data.jobDescription,
-          conversationHistory,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      // Validate that we have a message
-      if (!result || !result.message || result.message.trim() === "") {
-        console.error("Empty or invalid response from API:", result);
-        throw new Error("Received empty response from AI. Please try again.");
-      }
-
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: result.message.trim(),
-      };
-
-      const updatedMessages = [...newMessages, assistantMessage];
-      setMessages(updatedMessages);
-
-      // Count assistant messages (questions asked)
-      const questionCount = updatedMessages.filter(m => m.role === "assistant").length;
-
-      // After 7 questions, automatically complete the interview
-      if (questionCount >= 7 || result.isComplete || result.evaluation) {
-        handleComplete(result.evaluation);
-      } else {
-        saveSessionData({
-          rounds: {
-            ...data?.rounds,
-            technical: {
-              ...data?.rounds?.technical,
-              messages: updatedMessages,
-            },
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again.";
-      alert(errorMessage);
-      
-      // Add error message to chat so user knows what happened
-      const errorChatMessage: Message = {
-        role: "assistant",
-        content: "I apologize, but I encountered an error. Please try sending your message again, or refresh the page if the issue persists.",
-      };
-      // Use the current messages state which already includes the user message
-      setMessages([...messages, userMessage, errorChatMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleComplete = useCallback(async (evaluation?: any) => {
     if (isComplete) return;
@@ -275,7 +160,7 @@ export default function TechnicalInterviewPage() {
             body: JSON.stringify({
               type: "technical",
               messages: messages,
-              resumeText: data.rounds?.technical?.resumeText,
+              resumeText: data?.rounds?.technical?.resumeText,
               jobDescription: data.jobDescription,
             }),
           });
@@ -345,6 +230,121 @@ export default function TechnicalInterviewPage() {
       console.error("Error completing interview:", error);
     }
   }, [isComplete, messages, router]);
+
+  useEffect(() => {
+    const data = getSessionData();
+    if (!data) {
+      router.push("/setup");
+      return;
+    }
+    setSessionData(data);
+
+    // Check if interview already started
+    if (data?.rounds?.technical?.messages) {
+      setMessages(data?.rounds?.technical?.messages);
+      setIsComplete(data?.rounds?.technical?.completed || false);
+    } else {
+      // Start interview
+      startInterview();
+    }
+  }, [router, startInterview]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    // Check 3-minute limit
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed >= 180 && !isComplete) {
+      handleComplete();
+    }
+  }, [startTime, isComplete, handleComplete]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading || isComplete) return;
+
+    const userMessage: Message = { role: "user", content: input.trim() };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const data = getSessionData();
+      if (!data) {
+        router.push("/setup");
+        return;
+      }
+      const conversationHistory = newMessages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const response = await fetch("/api/technical-interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resumeText: data?.rounds?.technical?.resumeText || "",
+          jobDescription: data.jobDescription,
+          conversationHistory,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Validate that we have a message
+      if (!result || !result.message || result.message.trim() === "") {
+        console.error("Empty or invalid response from API:", result);
+        throw new Error("Received empty response from AI. Please try again.");
+      }
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: result.message.trim(),
+      };
+
+      const updatedMessages = [...newMessages, assistantMessage];
+      setMessages(updatedMessages);
+
+      // Count assistant messages (questions asked)
+      const questionCount = updatedMessages.filter(m => m.role === "assistant").length;
+
+      // After 7 questions, automatically complete the interview
+      if (questionCount >= 7 || result.isComplete || result.evaluation) {
+        handleComplete(result.evaluation);
+      } else {
+        saveSessionData({
+          rounds: {
+            ...data?.rounds,
+            technical: {
+              ...data?.rounds?.technical,
+              messages: updatedMessages,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again.";
+      alert(errorMessage);
+      
+      // Add error message to chat so user knows what happened
+      const errorChatMessage: Message = {
+        role: "assistant",
+        content: "I apologize, but I encountered an error. Please try sending your message again, or refresh the page if the issue persists.",
+      };
+      // Use the current messages state which already includes the user message
+      setMessages([...messages, userMessage, errorChatMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
