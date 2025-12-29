@@ -83,37 +83,7 @@ export default function WrittenTestPage() {
     }
   }, [testData, answers, isSubmitting, router]);
 
-  useEffect(() => {
-    const data = getSessionData();
-    if (!data) {
-      router.push("/setup");
-      return;
-    }
-    setSessionData(data);
-
-    // Load or generate test
-    loadTest();
-  }, [router]);
-
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/ebbbdb8b-9caa-4469-81bd-aad2adc311c1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'written/page.tsx:95',message:'Timer expired, calling handleSubmit',data:{timeLeft:prev,testDataExists:!!testData,isSubmitting},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-            handleSubmit();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [timeLeft, handleSubmit]);
-
-  const loadTest = async () => {
+  const loadTest = useCallback(async () => {
     setIsLoading(true);
     try {
       // Check if test already exists in session
@@ -195,7 +165,37 @@ export default function WrittenTestPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const data = getSessionData();
+    if (!data) {
+      router.push("/setup");
+      return;
+    }
+    setSessionData(data);
+
+    // Load or generate test
+    loadTest();
+  }, [router, loadTest]);
+
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/ebbbdb8b-9caa-4469-81bd-aad2adc311c1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'written/page.tsx:95',message:'Timer expired, calling handleSubmit',data:{timeLeft:prev,testDataExists:!!testData,isSubmitting},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            handleSubmit();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [timeLeft, handleSubmit]);
 
   const handleAnswer = (questionId: string, answer: string) => {
     const newAnswers = { ...answers, [questionId]: answer };
@@ -253,7 +253,7 @@ export default function WrittenTestPage() {
                   <li>Go to your terminal (where <code>npm run dev</code> is running)</li>
                   <li>Press <strong>Ctrl+C</strong> to stop the server</li>
                   <li>Run <code className="bg-gray-100 px-1 rounded">npm run dev</code> again</li>
-                  <li>Wait for "Ready" message, then refresh this page</li>
+                  <li>Wait for {'"Ready"'} message, then refresh this page</li>
                 </ol>
               </div>
             </div>

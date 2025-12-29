@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSessionData, saveSessionData } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ export default function TechnicalInterviewPage() {
       // Start interview
       startInterview();
     }
-  }, [router]);
+  }, [router, startInterview]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -47,9 +47,9 @@ export default function TechnicalInterviewPage() {
     if (elapsed >= 180 && !isComplete) {
       handleComplete();
     }
-  }, [startTime, isComplete]);
+  }, [startTime, isComplete, handleComplete]);
 
-  const startInterview = async () => {
+  const startInterview = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = getSessionData();
@@ -168,7 +168,7 @@ export default function TechnicalInterviewPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading || isComplete) return;
@@ -255,7 +255,7 @@ export default function TechnicalInterviewPage() {
     }
   };
 
-  const handleComplete = async (evaluation?: any) => {
+  const handleComplete = useCallback(async (evaluation?: any) => {
     if (isComplete) return;
     setIsComplete(true);
 
@@ -344,7 +344,7 @@ export default function TechnicalInterviewPage() {
     } catch (error) {
       console.error("Error completing interview:", error);
     }
-  };
+  }, [isComplete, messages, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

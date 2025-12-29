@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getSessionData, saveSessionData } from "@/lib/utils";
 
@@ -19,34 +19,7 @@ export default function BehavioralInterviewPage() {
   const [startTime] = useState(Date.now());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const data = getSessionData();
-    if (!data) {
-      router.push("/setup");
-      return;
-    }
-    setSessionData(data);
-
-    if (data?.rounds?.behavioral?.messages) {
-      setMessages(data.rounds.behavioral.messages);
-      setIsComplete(data.rounds.behavioral.completed || false);
-    } else {
-      startInterview();
-    }
-  }, [router]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed >= 180 && !isComplete) {
-      handleComplete();
-    }
-  }, [startTime, isComplete]);
-
-  const startInterview = async () => {
+  const startInterview = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = getSessionData();
@@ -164,7 +137,119 @@ export default function BehavioralInterviewPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [router]);
+
+  const handleComplete = useCallback(async (evaluation?: any) => {
+    if (isComplete) return;
+    setIsComplete(true);
+
+    try {
+      const data = getSessionData();
+
+      if (!evaluation) {
+        try {
+          const evalResponse = await fetch("/api/evaluate-interview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "behavioral",
+              messages: messages,
+              resumeText: data?.rounds?.behavioral?.resumeText,
+            }),
+          });
+
+          if (!evalResponse.ok) {
+            throw new Error(`Evaluation failed: ${evalResponse.status}`);
+          }
+
+          evaluation = await evalResponse.json();
+          
+          // Validate evaluation structure
+          if (!evaluation || !evaluation.scores) {
+            console.error("Invalid evaluation structure:", evaluation);
+            // Create fallback evaluation
+            evaluation = {
+              scores: {
+                communication: 0,
+                behavioral: 0,
+                confidence: 0,
+                culturalFit: 0
+              },
+              feedback: {
+                communication: "Evaluation could not be generated. Please try again.",
+                behavioral: "Evaluation could not be generated. Please try again.",
+                confidence: "Evaluation could not be generated. Please try again.",
+                culturalFit: "Evaluation could not be generated. Please try again."
+              },
+              strengths: [],
+              weaknesses: ["Unable to generate evaluation"]
+            };
+          }
+        } catch (evalError) {
+          console.error("Error generating evaluation:", evalError);
+          // Create fallback evaluation
+          evaluation = {
+            scores: {
+              communication: 0,
+              behavioral: 0,
+              confidence: 0,
+              culturalFit: 0
+            },
+            feedback: {
+              communication: "Evaluation could not be generated. Please try again.",
+              behavioral: "Evaluation could not be generated. Please try again.",
+              confidence: "Evaluation could not be generated. Please try again.",
+              culturalFit: "Evaluation could not be generated. Please try again."
+            },
+            strengths: [],
+            weaknesses: ["Unable to generate evaluation"]
+          };
+        }
+      }
+
+      saveSessionData({
+        rounds: {
+          ...data?.rounds,
+          behavioral: {
+            ...data?.rounds?.behavioral,
+            evaluation,
+            completed: true,
+          },
+        },
+      });
+
+      router.push("/feedback/behavioral");
+    } catch (error) {
+      console.error("Error completing interview:", error);
+    }
+  }, [isComplete, messages, router]);
+
+  useEffect(() => {
+    const data = getSessionData();
+    if (!data) {
+      router.push("/setup");
+      return;
+    }
+    setSessionData(data);
+
+    if (data?.rounds?.behavioral?.messages) {
+      setMessages(data.rounds.behavioral.messages);
+      setIsComplete(data.rounds.behavioral.completed || false);
+    } else {
+      startInterview();
+    }
+  }, [router, startInterview]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed >= 180 && !isComplete) {
+      handleComplete();
+    }
+  }, [startTime, isComplete, handleComplete]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading || isComplete) return;
@@ -243,91 +328,6 @@ export default function BehavioralInterviewPage() {
       setMessages([...messages, userMessage, errorChatMessage]);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleComplete = async (evaluation?: any) => {
-    if (isComplete) return;
-    setIsComplete(true);
-
-    try {
-      const data = getSessionData();
-
-      if (!evaluation) {
-        try {
-          const evalResponse = await fetch("/api/evaluate-interview", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "behavioral",
-              messages: messages,
-              resumeText: data.rounds?.behavioral?.resumeText,
-            }),
-          });
-
-          if (!evalResponse.ok) {
-            throw new Error(`Evaluation failed: ${evalResponse.status}`);
-          }
-
-          evaluation = await evalResponse.json();
-          
-          // Validate evaluation structure
-          if (!evaluation || !evaluation.scores) {
-            console.error("Invalid evaluation structure:", evaluation);
-            // Create fallback evaluation
-            evaluation = {
-              scores: {
-                communication: 0,
-                behavioral: 0,
-                confidence: 0,
-                culturalFit: 0
-              },
-              feedback: {
-                communication: "Evaluation could not be generated. Please try again.",
-                behavioral: "Evaluation could not be generated. Please try again.",
-                confidence: "Evaluation could not be generated. Please try again.",
-                culturalFit: "Evaluation could not be generated. Please try again."
-              },
-              strengths: [],
-              weaknesses: ["Unable to generate evaluation"]
-            };
-          }
-        } catch (evalError) {
-          console.error("Error generating evaluation:", evalError);
-          // Create fallback evaluation
-          evaluation = {
-            scores: {
-              communication: 0,
-              behavioral: 0,
-              confidence: 0,
-              culturalFit: 0
-            },
-            feedback: {
-              communication: "Evaluation could not be generated. Please try again.",
-              behavioral: "Evaluation could not be generated. Please try again.",
-              confidence: "Evaluation could not be generated. Please try again.",
-              culturalFit: "Evaluation could not be generated. Please try again."
-            },
-            strengths: [],
-            weaknesses: ["Unable to generate evaluation"]
-          };
-        }
-      }
-
-      saveSessionData({
-        rounds: {
-          ...data?.rounds,
-          behavioral: {
-            ...data?.rounds?.behavioral,
-            evaluation,
-            completed: true,
-          },
-        },
-      });
-
-      router.push("/feedback/behavioral");
-    } catch (error) {
-      console.error("Error completing interview:", error);
     }
   };
 
