@@ -1,0 +1,8 @@
+{"location":"written/page.tsx:80","message":"Response not OK, attempting to parse error","data":{"status":500},"timestamp":1766920212396,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:79","message":"Before parsing generate-test response","data":{"responseOk":false,"status":500},"timestamp":1766920212396,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:79","message":"Before parsing generate-test response","data":{"responseOk":false,"status":500},"timestamp":1766920214516,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:80","message":"Response not OK, attempting to parse error","data":{"status":500},"timestamp":1766920214516,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:79","message":"Before parsing generate-test response","data":{"responseOk":false,"status":500},"timestamp":1766920285136,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:80","message":"Response not OK, attempting to parse error","data":{"status":500},"timestamp":1766920285137,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:79","message":"Before parsing generate-test response","data":{"responseOk":false,"status":500},"timestamp":1766920289503,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"written/page.tsx:80","message":"Response not OK, attempting to parse error","data":{"status":500},"timestamp":1766920289504,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
