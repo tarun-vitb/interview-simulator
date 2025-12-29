@@ -77,4 +77,3 @@ Make sure to add your `GEMINI_API_KEY` to Vercel environment variables.
 ## License
 
 MIT
-
